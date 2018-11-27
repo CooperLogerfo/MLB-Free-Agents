@@ -7,9 +7,6 @@ library(geojsonio)
 library(leaflet)
 library(dplyr)
 
-#brew install protobuf.. needed for protolite which is needed for geojson
-#brew install v8@3.15
-#brew install jq
 setwd("/Users/cooperlogerfo/desktop/R_play")
 
 states <- geojson_read("us_map.json", what = "sp")
@@ -25,14 +22,12 @@ map %>% addPolygons()
 
 
 data$race <- as.factor(data$race)
-#data$binaryCol <- as.factor(data$binaryCol)
 
+#
 state_list = c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC",  "FL", "GA", "HI", "ID", "IL", 
            "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
            "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", 
            "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "PR")
-
-
 data$US <- as.logical(str_detect(data$BirthPlace, paste(state_list, collapse='|')))
 
 
@@ -184,6 +179,8 @@ mean_contract_subset <- temp %>%
 list_titles <- c("top_contract_aav", "name", "position", "age", "duration")
 colnames(top_contract_subset) <- list_titles
 
+top_contract_subset$top_contract_aav <- as.numeric(as.character(top_contract_subset$top_contract_aav))/1000000
+
 states@data <- cbind(states@data, 
                      top_contract_subset, 
                      num_players = num_players$V2,
@@ -195,23 +192,32 @@ states@data <- cbind(states@data,
 #names(states@data)[12]  <- "mean_sal"
 states@data$name <- as.character(states@data$name)
 states@data$position <- as.character(states@data$position)
-states@data$avg.value <- as.numeric(as.character(states@data$top_contract_aav))/1000000
 states@data$mean_sal <- as.numeric(as.character(states@data$mean_sal))/1000000
 states@data$age <- 25 + as.numeric(top_contract_subset$age)
 
 labels <- sprintf(
-  "<strong>%s</strong><br/>%g Average FA Contract(Thousands)<br/>%d State's Largest Contract (Thousands)<br/>%s Top Contract Player <br/>%s Most Common Position",
-  states@data$NAME, states@data$mean_sal, states@data$top_contract_aav, states@data$name, states@data$position
+  "<strong>%s</strong><br/>%g AAV FA Contract (Millions)<br/>
+  %g State's Largest Contract (Millions)<br/>%s Player Receiving Top Contract <br/>
+  %s State's Most Common Position",
+  states@data$NAME, states@data$mean_sal, states@data$top_contract_aav, 
+  states@data$name, states@data$position
 ) %>% lapply(htmltools::HTML)
 
-bins <- c(0, .001, .1, .5, 2, 5, 10, Inf)
+
+bins <- c(0, .001, 3, 6, 8, Inf)
 pal <- colorBin("YlOrRd", domain = states@data$mean_sal, bins = bins)
 
-map %>% addPolygons( fillColor = ~pal(states@data$mean_sal), weight = 2, opacity = 1, 
+map %>% 
+  addPolygons( fillColor = ~pal(states@data$mean_sal), 
+                     weight = 2, opacity = 1, 
                      color = "white", dashArray = "3", fillOpacity = 0.7,
                      highlight = highlightOptions( weight = 5, color = "#666",
-                                                   dashArray = "", fillOpacity = 0.7, bringToFront = TRUE),
-                     label = labels, labelOptions = labelOptions(style = list(
+                                                   dashArray = "", fillOpacity = .7, 
+                                                   bringToFront = TRUE),
+                     label = labels, 
+                     labelOptions = labelOptions(style = list(
                        "font-weight" = "normal", padding = "3px 8px"), textsize = "15px", 
-                       direction = "auto")) 
+                       direction = "auto")) %>%
+  addLegend(pal = pal, values = ~density, opacity = 0.7, 
+            title = NULL, position = "bottomright")
 
