@@ -218,6 +218,6 @@ map %>%
                      labelOptions = labelOptions(style = list(
                        "font-weight" = "normal", padding = "3px 8px"), textsize = "15px", 
                        direction = "auto")) %>%
-  addLegend(pal = pal, values = ~density, opacity = 0.7, 
+  addLegend(pal = pal, values = ~states@data$mean_sal, opacity = 0.7, 
             title = NULL, position = "bottomright")
 
