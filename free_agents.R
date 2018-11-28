@@ -7,12 +7,10 @@ library(geojsonio)
 library(leaflet)
 library(dplyr)
 
-#brew install protobuf.. needed for protolite which is needed for geojson
-#brew install v8@3.15
-#brew install jq
 setwd("/Users/cooperlogerfo/desktop/R_play")
 
 states <- geojson_read("us_map.json", what = "sp")
+
 data <- read.csv(file="final_data.csv", header=TRUE, sep=",")
 
 map <- leaflet(states) %>%
@@ -25,14 +23,12 @@ map %>% addPolygons()
 
 
 data$race <- as.factor(data$race)
-data$binaryCol <- as.factor(data$binaryCol)
 
+#
 state_list = c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC",  "FL", "GA", "HI", "ID", "IL", 
            "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
            "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", 
            "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "PR")
-
-
 data$US <- as.logical(str_detect(data$BirthPlace, paste(state_list, collapse='|')))
 
 
@@ -59,16 +55,16 @@ US_data <- US_data %>% arrange(State, desc(avg.value))
 #sort/goup by state
 #find aav by state , do by_state( by aav( get first player infofrmation and output it ))
 
-US_data$state_sal <- rep( 0, dim(US_data)[1] )
-
-for( i in 1:(dim(US_data)[1]) ){
-  for( j in 1:length(aav_state$State) ){
-    if(US_data$State[i] == aav_state$State[j]){
-      #I think this should be "top aav"
-      US_data$state_sal[i] <- aav_state$mean_sal[j]
-    }
-  }
-}
+# US_data$state_sal <- rep( 0, dim(US_data)[1] )
+# 
+# for( i in 1:(dim(US_data)[1]) ){
+#   for( j in 1:length(aav_state$State) ){
+#     if(US_data$State[i] == aav_state$State[j]){
+#       #I think this should be "top aav"
+#       US_data$state_sal[i] <- aav_state$mean_sal[j]
+#     }
+#   }
+# }
 
 abr_code_mx <- cbind(state_list, states$STATE)
 #so this is totally useless because Code in downloaded df is not numeric even tho its 1 - 52
@@ -152,9 +148,6 @@ num_players <- US_data %>%
   group_by(State) %>%
   summarise(n())
 
-#temp 
-# temp$V1 <- as.factor(unlist(temp$V1))
-
 top_contract_subset <- top_contract_subset %>%
   setNames(., c("V1", "V2", "V3", "V4", "V5", "V6")) %>%
   fill_state_data() %>%
@@ -183,8 +176,11 @@ mean_contract_subset <- temp %>%
   arrange(V1) %>%
   select(-c(V1))
 
-list_titles <- c("State", "contract_aav", "name", "position", "age", "duration")
+#"state"
+list_titles <- c("top_contract_aav", "name", "position", "age", "duration")
 colnames(top_contract_subset) <- list_titles
+
+top_contract_subset$top_contract_aav <- as.numeric(as.character(top_contract_subset$top_contract_aav))/1000000
 
 states@data <- cbind(states@data, 
                      top_contract_subset, 
@@ -197,39 +193,32 @@ states@data <- cbind(states@data,
 #names(states@data)[12]  <- "mean_sal"
 states@data$name <- as.character(states@data$name)
 states@data$position <- as.character(states@data$position)
-states@data$avg.value <- as.numeric(as.character(states@data$contract_aav))/1000000
 states@data$mean_sal <- as.numeric(as.character(states@data$mean_sal))/1000000
 states@data$age <- 25 + as.numeric(top_contract_subset$age)
 
 labels <- sprintf(
-  "<strong>%s</strong><br/>%g Average FA Contract(Thousands)<br/>%d State's Largest Contract (Thousands)<br/>%s Top Contract Player <br/>%s Most Common Position",
-  states@data$NAME, states@data$mean_sal, states@data$avg.value, states@data$name, states@data$position
+  "<strong>%s</strong><br/>%g AAV FA Contract (Millions)<br/>
+  %g State's Largest Contract (Millions)<br/>%s Player Receiving Top Contract <br/>
+  %s State's Most Common Position",
+  states@data$NAME, states@data$mean_sal, states@data$top_contract_aav, 
+  states@data$name, states@data$position
 ) %>% lapply(htmltools::HTML)
 
-bins <- c(0, .001, .1, .5, 2, 5, 10, Inf)
+
+bins <- c(0, .001, 3, 6, 8, Inf)
 pal <- colorBin("YlOrRd", domain = states@data$mean_sal, bins = bins)
 
-map %>% addPolygons( fillColor = ~pal(states@data$mean_sal), weight = 2, opacity = 1, 
+map %>% 
+  addPolygons( fillColor = ~pal(states@data$mean_sal), 
+                     weight = 2, opacity = 1, 
                      color = "white", dashArray = "3", fillOpacity = 0.7,
                      highlight = highlightOptions( weight = 5, color = "#666",
-                                                   dashArray = "", fillOpacity = 0.7, bringToFront = TRUE),
-                     label = labels, labelOptions = labelOptions(style = list(
+                                                   dashArray = "", fillOpacity = .7, 
+                                                   bringToFront = TRUE),
+                     label = labels, 
+                     labelOptions = labelOptions(style = list(
                        "font-weight" = "normal", padding = "3px 8px"), textsize = "15px", 
-                       direction = "auto")) 
+                       direction = "auto")) %>%
+  addLegend(pal = pal, values = ~states@data$mean_sal, opacity = 0.7, 
+            title = NULL, position = "bottomright")
 
-
-
-
-
-
-
-
-
-
-ifelse(as.logical(str_detect(US_data$State, paste(aav_state[,1:1], collapse='|'))), aav_state)
-US_data$mean_sal <- ifelse( str_detect(US_data$State, ) )
-
-
-# US_data$state_sal <- as.logical(str_detect(US_data$State, paste(top_player_state[,1:1], collapse='|')))
-# 
-# ifelse(as.logical(str_detect(US_data$State, paste(aav_state[,1:1], collapse='|'))), aav_state)
