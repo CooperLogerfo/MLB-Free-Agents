@@ -6,17 +6,20 @@ library(geojsonio)
 states <- geojson_read("US_map.json", what = "sp")
 data <- read.csv(file="MLBFA_data.csv", header=TRUE, sep=",")
 
+#Used in functions to complete and match data
 state_list = c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC",  "FL", "GA", "HI", "ID", "IL", 
                "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
                "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", 
                "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "PR")
 
 
+#function that returns the mode of a numeric vector
 getmode <- function(d) {
   unique_id <- unique(d)
   unique_id[which.max(tabulate(match(d, unique_id)))]
 }
 
+#match state abbreviations to the names that are used in .json geographic data
 abr_code_mx <- cbind(state_list, states$STATE)
 match_abr_to_code <- function(abr_value_df){
   state_abrs <- abr_value_df[,1]
@@ -52,6 +55,7 @@ fill_state_data <- function(incomplete_d){
 }
 
 
+#Function to combine our features with hte geo data for mapping
 fill_data <- function(geo, data){
   data$race <- as.factor(data$race)
   data$US <- as.logical(str_detect(data$BirthPlace, paste(state_list, collapse='|')))
@@ -65,10 +69,7 @@ fill_data <- function(geo, data){
   US_data$State <- as.factor(state)
   US_data <- US_data %>% arrange(State, desc(avg.value))
   
-  #sort data by state, then by avg value.. so we can try to pick off the top the player
-  #with the highest avg salary from each state
-  #US_data %>% arrange(State, avg.value)
-  
+  #top contract (AAV) by state
   top_contracts <- US_data %>% 
     group_by(State) %>% 
     slice(which.max(avg.value))
@@ -87,11 +88,12 @@ fill_data <- function(geo, data){
     group_by(State) %>%
     summarise(mean_sal = mean(avg.value))
   
-  #popular positions
+  #popular position by state
   pos <- US_data %>%
     group_by(State) %>%
     summarise(pop_pos = getmode(as.character(position)) ) 
   
+  #Number unique FA contracts by state
   num_players <- US_data %>%
     group_by(State) %>%
     summarise(n())
@@ -127,25 +129,23 @@ fill_data <- function(geo, data){
   list_titles <- c("top_contract_aav", "name", "position", "age", "duration")
   colnames(top_contract_subset) <- list_titles
   
+  #Change vectors to appropraite data types
   top_contract_subset$top_contract_aav <- as.numeric(as.character(top_contract_subset$top_contract_aav))/1000000
+  top_contract_subset$age <- as.numeric(as.character(top_contract_subset$age))
+  top_contract_subset$name <- as.character(top_contract_subset$name)
   
-  
+  #put together full data set
   clean_data <- cbind(states@data, 
                       top_contract_subset, 
-                      num_players = num_players$V2,
-                      pop_pos = pos$V2,
-                      mean_sal = mean_contract_subset$V2)
+                      num_players = as.numeric(as.character(num_players$V2)),
+                      pop_pos = as.character(pos$V2),
+                      mean_sal = as.numeric(as.character(mean_contract_subset$V2))/1000000)
   
-  clean_data$name <- as.character(clean_data$name)
-  clean_data$position <- as.character(clean_data$position)
-  clean_data$mean_sal <- as.numeric(as.character(clean_data$mean_sal))/1000000
-  clean_data$age <- 25 + as.numeric(top_contract_subset$age)
-  clean_data$num_players <- as.numeric(as.character(clean_data$num_players))
-  
+  #return full data set
   return(clean_data)
 }
 
+#Save final data set as .Rds to the working directory
 states_data <- fill_data(states, data)
 states@data <- states_data
-
 saveRDS(states, file="states_complete.Rds")
