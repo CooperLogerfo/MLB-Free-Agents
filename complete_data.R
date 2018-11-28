@@ -3,7 +3,7 @@ library(dplyr)
 library(geojsonio)
 
 
-states <- geojson_read("us_map.json", what = "sp")
+states <- geojson_read("US_map.json", what = "sp")
 data <- read.csv(file="MLBFA_data.csv", header=TRUE, sep=",")
 
 state_list = c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC",  "FL", "GA", "HI", "ID", "IL", 
@@ -140,6 +140,7 @@ fill_data <- function(geo, data){
   clean_data$position <- as.character(clean_data$position)
   clean_data$mean_sal <- as.numeric(as.character(clean_data$mean_sal))/1000000
   clean_data$age <- 25 + as.numeric(top_contract_subset$age)
+  clean_data$num_players <- as.numeric(as.character(clean_data$num_players))
   
   return(clean_data)
 }

@@ -9,6 +9,7 @@
 
 library(shiny)
 library(leaflet)
+library(dplyr)
 
 states <- readRDS("states_complete.Rds")
 
@@ -16,7 +17,7 @@ states <- readRDS("states_complete.Rds")
 ui <- fluidPage(
    
    # Application title
-   titlePanel("MLB Free Agents by State"),
+   titlePanel("MLB Free Agents by State (2010 - 2017)"),
    
    fluidRow(
      column(7, offset = 1,
@@ -47,10 +48,11 @@ server <- function(input, output) {
   observe <- ({
     
     labels <- sprintf(
-      "<strong>%s</strong><br/>%g Million: AAV FA Contract (USD)<br/>
-      %g Million: State's Largest Contract (USD)<br/>%s : Player Receiving Top Contract <br/>
+      "<strong><center>%s</center></strong> <center>%s Unique Free Agent Contracts</center><br/>
+      %g Million: AAV FA Contract (USD)<br/>
+      %g Million: State's Largest Contract by AAV (USD)<br/>%s : Player Receiving Top Contract <br/>
       %s : State's Most Common Position",
-      states@data$NAME, states@data$mean_sal, states@data$top_contract_aav,
+      states@data$NAME, states@data$num_players, states@data$mean_sal, states@data$top_contract_aav,
       states@data$name, states@data$position
     ) %>% lapply(htmltools::HTML)
     
@@ -70,7 +72,7 @@ server <- function(input, output) {
                      direction = "auto"),
                    layerId = ~states$region) %>%
       addLegend(pal = pal, values = ~mean_sal, opacity = 0.7,
-                title = NULL, position = "bottomright")
+                title = "AAV FA Contarct (Millions)", position = "bottomright")
   })
 }
 
