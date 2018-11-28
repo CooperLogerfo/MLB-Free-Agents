@@ -10,6 +10,7 @@ library(dplyr)
 setwd("/Users/cooperlogerfo/desktop/R_play")
 
 states <- geojson_read("us_map.json", what = "sp")
+
 data <- read.csv(file="final_data.csv", header=TRUE, sep=",")
 
 map <- leaflet(states) %>%
