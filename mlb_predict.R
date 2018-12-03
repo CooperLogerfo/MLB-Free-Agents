@@ -10,8 +10,9 @@ library(caret)
 library(stringr)
 library(dplyr)
 
-setwd("/Users/cooperlogerfo/desktop/R_play")
-d <- read.csv(file="final_data.csv", header=TRUE, sep=",")
+# setwd("/Users/cooperlogerfo/desktop/R_play")
+# d <- read.csv(file="final_data.csv", header=TRUE, sep=",")
+d <- read.csv(file="MLBFA_data.csv", header=TRUE, sep=",")
 d$race <- as.factor(d$race)
 d$BirthPlace <- as.character(d$BirthPlace)
 
@@ -85,7 +86,8 @@ aav_hsit <- hist(d$avg.value, main = "Histogram of Salaries", xlab = "AAV", ylab
 bw <- diff(range(d$avg.value)) / (2 * IQR(d$avg.value) / length(d$avg.value)^(1/3))
 n_bin <- length(d$avg.value)/bw
 d %>% ggplot(aes(x = avg.value)) +
-  geom_histogram(bins = n_bin, fill = "red")
+  geom_histogram(bins = n_bin, fill = "red") +
+  labs(title = "Average Annual Salary histogram", xlab = "AAV")
 
 
 d$avg.value <- log(d$avg.value)
@@ -93,11 +95,13 @@ d$avg.value <- log(d$avg.value)
 bw <- diff(range(d$avg.value)) / (2 * IQR(d$avg.value) / length(d$avg.value)^(1/3))
 n_bin <- length(d$avg.value)/bw
 d %>% ggplot(aes(x = avg.value)) +
-  geom_histogram(bins = n_bin, fill = "red")
+  geom_histogram(bins = n_bin, fill = "red") +
+  labs(title = "log(Average Annual Salary) histogram", xlab = "long(AAV)")
 
 
 d %>% ggplot(aes(x = avg.value)) +
-  geom_histogram(bins = 20, fill = "red")
+  geom_histogram(bins = 20, fill = "red") +
+  labs(title = "log(Average Annual Salary) histogram", xlab = "long(AAV)")
 
 #store data before reducing
 fullData <- d
@@ -107,8 +111,8 @@ d <- d %>% dplyr::select(-c(age, experience, college, BirthPlace,
 
 
 #select whether we'll use contract value (regerssion) or duration as response variable (classification)
-d <- d%>% dplyr::select(-c(avg.value))
-#d <- d%>% dplyr::select(-c(contractDuration))
+# d <- d%>% dplyr::select(-c(avg.value))
+d <- d%>% dplyr::select(-c(contractDuration))
 
 
 #arrange by year, contract value, performance
