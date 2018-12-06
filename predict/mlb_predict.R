@@ -1,7 +1,7 @@
 install.packages("tidyverse")
 install.packages("rpart")
 install.packages('randomForest')
-install.packages("stringr")
+install.packages('stringr')
 install.packages("dplyr")
 library(tidyverse)
 library(rpart)
@@ -10,10 +10,13 @@ library(caret)
 library(stringr)
 library(dplyr)
 
-# setwd("/Users/cooperlogerfo/desktop/R_play")
-# d <- read.csv(file="final_data.csv", header=TRUE, sep=",")
+
 d <- read.csv(file="MLBFA_data.csv", header=TRUE, sep=",")
-d$race <- as.factor(d$race)
+
+### Code segment for modifying BirthPlace variable. Changing from "city, state" string to
+### birth country and US or not US born.
+d$BirthPlace <- as.character(d$BirthPlace)
+birthCountry <- rep(" ", length(birth))
 d$BirthPlace <- as.character(d$BirthPlace)
 
 birth = d$BirthPlace
@@ -53,12 +56,6 @@ for (i in 1:length(d$name)){
   else if (grepl("Japan", birth[i])){
     birthCountry[i] <- "Japan"
   }
-  # else if (grepl("Netherlands", birth[i])){
-  #   birthCountry[i] <- "NL"
-  # }
-  # else if (grepl("Australia", birth[i])){
-  #   birthCountry[i] <- "NL"
-  # }
   else if (grepl("US", birthCountry[i])){
     #skip
   }
@@ -71,15 +68,18 @@ for (i in 1:length(d$name)){
   }
 }
 
-#I think I actauly want this as.character
 d$birthCountry <- as.factor(birthCountry)
 d$US <- as.logical(str_detect(d$BirthPlace, paste(state_list, collapse='|')))
-d$binaryCol <- as.factor(ifelse(d$college == "None", 0, 1))
+
+
+d$race <- as.factor(d$race)
 d$target.year <- as.factor(d$target.year)
 
-#modify potential response variables
-#replacement better than ifelse in this case because we want no "else" just the same
+d$binaryCol <- as.factor(ifelse(d$college == "None", 0, 1))
 d$contractDuration <- as.factor(ifelse(d$contractDuration == 1, 1, 0))
+
+
+
 #log transformation of salary, salary data will naturally be right skewed as this is
 aav_hsit <- hist(d$avg.value, main = "Histogram of Salaries", xlab = "AAV", ylab = "Num Contracts")
 #Freedman–Diaconis rule
@@ -117,11 +117,6 @@ d <- d%>% dplyr::select(-c(contractDuration))
 
 #arrange by year, contract value, performance
 d <- d %>% dplyr::arrange(target.year, desc(avg.value), desc(war))
-
-#na.omit() removes too many values ~ 30% of data. so I need to do more cleaning first
-#this is because I was cleaning contract value, when I should have been cleaning avg. value
-#contract value has ~ 300 "minor" so when I was convertign to numeric it was converting to na
-
 
 set.seed(101)
 split <- sample(2, nrow(d), replace = TRUE, prob = c(0.8, 0.2))
